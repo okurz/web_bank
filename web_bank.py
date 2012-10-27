@@ -39,6 +39,8 @@ Benutzung: web_bank.py [OPTIONEN]
                             Default: Heute
  -o, --outfile=FILE         Dateiname für die Ausgabedatei
                             Default: Standardausgabe (Fenster)
+ -i, --infile=CSV           Alternativer Modus: Parsen einer bereits
+                            heruntergeladenen CSV-Datei
  -v, --verbose              Gibt zusätzliche Debug-Informationen aus
 '''
 
@@ -212,12 +214,13 @@ def main(argv=None):
 	fromdate=''
 	till=datetime.now().strftime('%d.%m.%Y')
 	outfile= sys.stdout
+	csv_in_file_mode=False
 	
 	if argv is None:
 		argv = sys.argv
 	try:
 		try:
-			opts, args = getopt.getopt(argv[1:], "ha:c:p:f:t:o:v", ['help','account=','card=','password=','from=','till=','outfile=','verbose'])
+			opts, args = getopt.getopt(argv[1:], "ha:c:p:f:t:o:i:v", ['help','account=','card=','password=','from=','till=','outfile=','infile=','verbose'])
 		except getopt.error, msg:
 			raise Usage(msg)
 		for o, a in opts:
@@ -239,19 +242,31 @@ def main(argv=None):
 					outfile=open(a,'w')
 				except IOError, msg:
 					raise Usage(msg)
+			if o in ('-i','--infile'):
+				csv_in_file_mode=True
+				try:
+					infile=open(a,'r')
+				except IOError, msg:
+					raise Usage(msg)
 			if o in ('-v','--verbose'):
 				print 'Mit Debug-Ausgaben'
 				global debug
 				debug=True
-		if not account or not fromdate:
-			raise Usage('Anfangsdatum und Kontonummer müssen angegeben sein.')
-		if not password:
-			try:
-				password=getpass('Geben Sie das Passwort für das Konto '+account+' ein: ')
-			except KeyboardInterrupt:
-				raise Usage('Sie müssen ein Passwort eingeben!')
-			
-		cc_csv = PARSER.get_cc_csv(account, card_no, password, fromdate, till).decode('iso-8859-15')
+
+		if not csv_in_file_mode:
+			if not account or not fromdate:
+				raise Usage('Anfangsdatum und Kontonummer müssen angegeben sein.')
+			if not password:
+				try:
+					password=getpass('Geben Sie das Passwort für das Konto '+account+' ein: ')
+				except KeyboardInterrupt:
+					raise Usage('Sie müssen ein Passwort eingeben!')
+
+		cc_csv = ''
+		if csv_in_file_mode:
+			cc_csv = infile.read().decode('iso-8859-15')
+		else:
+		    cc_csv = PARSER.get_cc_csv(account, card_no, password, fromdate, till).decode('iso-8859-15')
 		cc_data = PARSER.parse_csv(cc_csv)
 
 		print >>outfile, render_qif(cc_data).encode('utf-8')
