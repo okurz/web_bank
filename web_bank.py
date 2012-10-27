@@ -251,7 +251,7 @@ def main(argv=None):
 			except KeyboardInterrupt:
 				raise Usage('Sie müssen ein Passwort eingeben!')
 			
-		cc_csv = PARSER.get_cc_csv(account, card_no, password, fromdate, till)
+		cc_csv = PARSER.get_cc_csv(account, card_no, password, fromdate, till).decode('iso-8859-15')
 		cc_data = PARSER.parse_csv(cc_csv)
 
 		print >>outfile, render_qif(cc_data).encode('utf-8')
